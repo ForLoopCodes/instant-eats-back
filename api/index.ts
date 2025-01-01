@@ -16,6 +16,39 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// find orders function
+app.post("/orders/findOrders", async (req: any, res: any) => {
+  try {
+    const { filters, pagination } = req.body;
+    const { latitude, longitude, radius } = filters || {};
+    const { page = 1, limit = 10 } = pagination || {};
+    const { data, error } = await supabase.rpc("find_orders_within_area", {
+      input_latitude: latitude,
+      input_longitude: longitude,
+      input_radius: radius,
+    });
+    if (error) return res.status(400).json({ error: error.message });
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedData = data.slice(startIndex, endIndex);
+    const totalItems = data.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    return res.json({
+      data: paginatedData,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+        limit,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 const getData = async (table: any) => {
   const { data, error } = await supabase.from(table).select("*");
   if (error) throw error;
@@ -167,6 +200,55 @@ app.delete(
   }
 );
 
+app.post(
+  "/:table/:id",
+  async (
+    req: { params: { table: any; id: any }; body: any },
+    res: {
+      status: (arg0: number) => {
+        (): any;
+        new (): any;
+        json: {
+          (arg0: { error?: any; message?: string; data?: any }): void;
+          new (): any;
+        };
+      };
+    }
+  ) => {
+    const { table, id } = req.params;
+    const updates = req.body;
+
+    const validation = validateTable(table, allowedTables);
+    if (!validation.valid) {
+      return res.status(400).json({ error: validation.message });
+    }
+
+    try {
+      console.log("Updating table:", table, "ID:", id, "Updates:", updates);
+
+      const { data, error } = await supabase
+        .from(table)
+        .update(updates)
+        .eq("id", id);
+
+      console.log("Supabase response:", { data, error });
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      res.status(200).json({
+        message: `Record with id: ${id} updated successfully`,
+        data,
+      });
+    } catch (err: any) {
+      console.error("Unexpected server error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// FILTER FUNCTIONS
 app.post("/restaurants/filter", async (req: any, res: any) => {
   const { filters = {}, pagination = {}, sort = {}, fields } = req.body;
 
@@ -314,54 +396,6 @@ app.post("/menu_items/filter", async (req: any, res: any) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.post(
-  "/:table/:id",
-  async (
-    req: { params: { table: any; id: any }; body: any },
-    res: {
-      status: (arg0: number) => {
-        (): any;
-        new (): any;
-        json: {
-          (arg0: { error?: any; message?: string; data?: any }): void;
-          new (): any;
-        };
-      };
-    }
-  ) => {
-    const { table, id } = req.params;
-    const updates = req.body;
-
-    const validation = validateTable(table, allowedTables);
-    if (!validation.valid) {
-      return res.status(400).json({ error: validation.message });
-    }
-
-    try {
-      console.log("Updating table:", table, "ID:", id, "Updates:", updates);
-
-      const { data, error } = await supabase
-        .from(table)
-        .update(updates)
-        .eq("id", id);
-
-      console.log("Supabase response:", { data, error });
-
-      if (error) {
-        return res.status(400).json({ error: error.message });
-      }
-
-      res.status(200).json({
-        message: `Record with id: ${id} updated successfully`,
-        data,
-      });
-    } catch (err: any) {
-      console.error("Unexpected server error:", err);
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
 
 app.post(
   "/users/filter",
