@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { createClient } = require("@supabase/supabase-js");
+require("dotenv").config();
 
 const app = express();
 app.use(
@@ -11,9 +12,8 @@ app.use(
 );
 app.use(express.json());
 
-const supabaseUrl = "https://icezxcvyxkiztpgwsltn.supabase.co";
-const supabaseKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljZXp4Y3Z5eGtpenRwZ3dzbHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM1NDU4MTgsImV4cCI6MjA0OTEyMTgxOH0.FSOHBHFCEZf6lXrdstR-nKrSyGzvV8lfiQi1EFJtzXA";
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const getData = async (table: any) => {
@@ -52,7 +52,6 @@ const allowedTables = [
   "menu_items",
   "notifications",
   "orders",
-  "payments",
   "restaurants",
   "reviews",
   "users",
