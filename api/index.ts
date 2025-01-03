@@ -49,6 +49,75 @@ app.post("/orders/findOrders", async (req: any, res: any) => {
   }
 });
 
+app.post("/acceptOrder", async (req: any, res: any) => {
+  const { deliveryPersonId, orderId } = req.body;
+
+  if (!deliveryPersonId || !orderId) {
+    return res
+      .status(400)
+      .json({ error: "deliveryPersonId and orderId are required" });
+  }
+
+  // Check if the delivery person is available
+  const { data: deliveryPerson, error: deliveryPersonError } = await supabase
+    .from("delivery_persons")
+    .select("status")
+    .eq("id", deliveryPersonId)
+    .single();
+
+  if (deliveryPersonError) {
+    return res.status(400).json({ error: deliveryPersonError.message });
+  }
+
+  if (deliveryPerson.status !== "Available") {
+    return res.status(400).json({ error: "Delivery person is not available" });
+  }
+
+  // Check if the order already has a delivery person assigned
+  const { data: existingOrder, error: fetchError } = await supabase
+    .from("orders")
+    .select("delivery_person_id")
+    .eq("id", orderId)
+    .single();
+
+  if (fetchError) {
+    return res.status(400).json({ error: fetchError.message });
+  }
+
+  if (existingOrder.delivery_person_id) {
+    return res
+      .status(400)
+      .json({ error: "Order already has a delivery person assigned" });
+  }
+
+  // Update the order with the new delivery person and status
+  const { data: orderData, error: orderError } = await supabase
+    .from("orders")
+    .update({ delivery_person_id: deliveryPersonId, status: "accepted" })
+    .eq("id", orderId);
+
+  if (orderError) {
+    return res.status(400).json({ error: orderError.message });
+  }
+
+  // Update the delivery person's status to 'delivery'
+  const { data: updatedDeliveryPerson, error: updateDeliveryPersonError } =
+    await supabase
+      .from("delivery_persons")
+      .update({ status: "Delivery" })
+      .eq("id", deliveryPersonId);
+
+  if (updateDeliveryPersonError) {
+    return res.status(400).json({ error: updateDeliveryPersonError.message });
+  }
+
+  return res.json({
+    message: "Order accepted",
+    orderData,
+    updatedDeliveryPerson,
+  });
+});
+
 const getData = async (table: any) => {
   const { data, error } = await supabase.from(table).select("*");
   if (error) throw error;
