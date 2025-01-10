@@ -6,7 +6,8 @@ require("dotenv").config();
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173", // Allow only your React app
+    // origin: "http://192.168.2.156:5173", // Allow only your React app
+    origin: "*",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   })
 );
@@ -116,6 +117,74 @@ app.post("/acceptOrder", async (req: any, res: any) => {
     orderData,
     updatedDeliveryPerson,
   });
+});
+
+app.post("/createOrder", async (req: any, res: any) => {
+  const {
+    p_user_id,
+    p_restaurant_id,
+    p_delivery_address_id,
+    p_total_price,
+    p_delivery_notes,
+    p_items,
+  } = req.body;
+
+  if (
+    !p_user_id ||
+    !p_restaurant_id ||
+    !p_delivery_address_id ||
+    !p_total_price ||
+    !p_items
+  ) {
+    return res.status(400).json({ error: "All order details are required" });
+  }
+
+  try {
+    // Fetch restaurant location
+    const { data: restaurant, error: restaurantError } = await supabase
+      .from("restaurants")
+      .select("latitude, longitude")
+      .eq("id", p_restaurant_id)
+      .single();
+
+    if (restaurantError) {
+      throw restaurantError;
+    }
+
+    const { latitude, longitude } = restaurant;
+
+    // Insert new order
+    const { data: newOrder, error: orderError } = await supabase
+      .from("orders")
+      .insert({
+        user_id: p_user_id,
+        restaurant_id: p_restaurant_id,
+        delivery_address_id: p_delivery_address_id,
+        total_price: p_total_price,
+        delivery_notes: p_delivery_notes,
+        items: p_items,
+        created_at: new Date(),
+        updated_at: new Date(),
+        latitude: latitude,
+        longitude: longitude,
+        payment_method: "CASH",
+        payment_status: "INITIALIZED",
+        transaction_id: null,
+      })
+      .select()
+      .single();
+
+    if (orderError) {
+      throw orderError;
+    }
+
+    return res.json({
+      message: "Order created successfully",
+      order: newOrder,
+    });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
 });
 
 const getData = async (table: any) => {
@@ -776,9 +845,16 @@ app.post(
   //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   // );
 }
+// const PORT = process.env.PORT || 3000;
+// app.listen(PORT, () => {
+//   console.log(`Server running on http://localhost:${PORT}`);
+// });
 
+//host to local network on 192.168
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+const HOST = "192.168.2.156"; // Replace with your actual local network IP
+
+app.listen(PORT, HOST, () => {
+  console.log(`Server running on http://${HOST}:${PORT}`);
 });
 module.exports = app;
