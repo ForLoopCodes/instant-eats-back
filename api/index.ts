@@ -852,7 +852,7 @@ app.post(
 
 //host to local network on 192.168
 const PORT = process.env.PORT || 3000;
-const HOST = "192.168.2.156"; // Replace with your actual local network IP
+const HOST = "localhost"; // Replace with your actual local network IP
 
 app.listen(PORT, HOST, () => {
   console.log(`Server running on http://${HOST}:${PORT}`);
