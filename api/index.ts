@@ -6,9 +6,9 @@ require("dotenv").config();
 const app = express();
 app.use(
   cors({
-    // origin: "http://192.168.2.156:5173", // Allow only your React app
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    origin: "http://192.168.142.123:5173", // Allow only your React app
+    // origin: "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "*"],
   })
 );
 app.use(express.json());
@@ -229,161 +229,6 @@ const allowedTables = [
 ];
 app.get("/", (req: any, res: { send: (arg0: string) => any }) =>
   res.send("Express on Vercel")
-);
-
-app.get(
-  "/:table",
-  async (
-    req: { params: { table: any } },
-    res: {
-      status: (arg0: number) => {
-        (): any;
-        new (): any;
-        json: { (arg0: { error: any }): void; new (): any };
-      };
-      json: (arg0: any) => void;
-    }
-  ) => {
-    const { table } = req.params;
-    const validation = validateTable(table, allowedTables);
-
-    if (!validation.valid)
-      return res.status(400).json({ error: validation.message });
-
-    try {
-      const data = await getData(table);
-      res.json(data);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
-
-app.get(
-  "/:table/:id",
-  async (
-    req: { params: { table: any; id: any } },
-    res: { status: any; json?: any }
-  ) => {
-    const { table, id } = req.params;
-    const validation = validateTable(table, allowedTables);
-
-    if (!validation.valid)
-      return res.status(400).json({ error: validation.message });
-
-    try {
-      const { data, error } = await supabase
-        .from(table)
-        .select("*")
-        .eq("id", id)
-        .single();
-      if (handleError(res, error, "Error fetching record")) return;
-
-      if (!data)
-        return res
-          .status(404)
-          .json({ error: `No record found with id: ${id}` });
-
-      res.json(data);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
-
-app.post(
-  "/:table",
-  async (req: { params: { table: any }; body: any }, res: { status: any }) => {
-    const { table } = req.params;
-    const requestBody = {
-      ...req.body,
-      created_at: new Date(),
-      updated_at: new Date(),
-    };
-    const validation = validateTable(table, allowedTables);
-
-    if (!validation.valid)
-      return res.status(400).json({ error: validation.message });
-
-    try {
-      const { data, error } = await supabase.from(table).insert([requestBody]);
-      if (handleError(res, error, "Error inserting record")) return;
-
-      res.status(201).json(data);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
-
-app.delete(
-  "/:table/:id",
-  async (req: { params: { table: any; id: any } }, res: { status: any }) => {
-    const { table, id } = req.params;
-    const validation = validateTable(table, allowedTables);
-
-    if (!validation.valid)
-      return res.status(400).json({ error: validation.message });
-
-    try {
-      const { data, error } = await supabase.from(table).delete().eq("id", id);
-      if (handleError(res, error, "Error deleting record")) return;
-
-      res
-        .status(200)
-        .json({ message: `Record with id: ${id} deleted successfully` });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
-
-app.post(
-  "/:table/:id",
-  async (
-    req: { params: { table: any; id: any }; body: any },
-    res: {
-      status: (arg0: number) => {
-        (): any;
-        new (): any;
-        json: {
-          (arg0: { error?: any; message?: string; data?: any }): void;
-          new (): any;
-        };
-      };
-    }
-  ) => {
-    const { table, id } = req.params;
-    const updates = req.body;
-
-    const validation = validateTable(table, allowedTables);
-    if (!validation.valid) {
-      return res.status(400).json({ error: validation.message });
-    }
-
-    try {
-      console.log("Updating table:", table, "ID:", id, "Updates:", updates);
-
-      const { data, error } = await supabase
-        .from(table)
-        .update(updates)
-        .eq("id", id);
-
-      console.log("Supabase response:", { data, error });
-
-      if (error) {
-        return res.status(400).json({ error: error.message });
-      }
-
-      res.status(200).json({
-        message: `Record with id: ${id} updated successfully`,
-        data,
-      });
-    } catch (err: any) {
-      console.error("Unexpected server error:", err);
-      res.status(500).json({ error: err.message });
-    }
-  }
 );
 
 // FILTER FUNCTIONS
@@ -850,9 +695,211 @@ app.post(
 //   console.log(`Server running on http://localhost:${PORT}`);
 // });
 
+app.get(
+  "/:table",
+  async (
+    req: { params: { table: any } },
+    res: {
+      status: (arg0: number) => {
+        (): any;
+        new (): any;
+        json: { (arg0: { error: any }): void; new (): any };
+      };
+      json: (arg0: any) => void;
+    }
+  ) => {
+    const { table } = req.params;
+    const validation = validateTable(table, allowedTables);
+
+    if (!validation.valid)
+      return res.status(400).json({ error: validation.message });
+
+    try {
+      const data = await getData(table);
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.get(
+  "/:table/:id",
+  async (
+    req: { params: { table: any; id: any } },
+    res: { status: any; json?: any }
+  ) => {
+    const { table, id } = req.params;
+    const validation = validateTable(table, allowedTables);
+
+    if (!validation.valid)
+      return res.status(400).json({ error: validation.message });
+
+    try {
+      const { data, error } = await supabase
+        .from(table)
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (handleError(res, error, "Error fetching record")) return;
+
+      if (!data)
+        return res
+          .status(404)
+          .json({ error: `No record found with id: ${id}` });
+
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post(
+  "/:table",
+  async (req: { params: { table: any }; body: any }, res: { status: any }) => {
+    const { table } = req.params;
+    const requestBody = {
+      ...req.body,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    const validation = validateTable(table, allowedTables);
+
+    if (!validation.valid)
+      return res.status(400).json({ error: validation.message });
+
+    try {
+      const { data, error } = await supabase.from(table).insert([requestBody]);
+      if (handleError(res, error, "Error inserting record")) return;
+
+      res.status(201).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.delete(
+  "/:table/:id",
+  async (req: { params: { table: any; id: any } }, res: { status: any }) => {
+    const { table, id } = req.params;
+    const validation = validateTable(table, allowedTables);
+
+    if (!validation.valid)
+      return res.status(400).json({ error: validation.message });
+
+    try {
+      const { data, error } = await supabase.from(table).delete().eq("id", id);
+      if (handleError(res, error, "Error deleting record")) return;
+
+      res
+        .status(200)
+        .json({ message: `Record with id: ${id} deleted successfully` });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post(
+  "/:table/:id",
+  async (
+    req: { params: { table: any; id: any }; body: any },
+    res: {
+      status: (arg0: number) => {
+        (): any;
+        new (): any;
+        json: {
+          (arg0: { error?: any; message?: string; data?: any }): void;
+          new (): any;
+        };
+      };
+    }
+  ) => {
+    const { table, id } = req.params;
+    const updates = req.body;
+
+    const validation = validateTable(table, allowedTables);
+    if (!validation.valid) {
+      return res.status(400).json({ error: validation.message });
+    }
+
+    try {
+      console.log("Updating table:", table, "ID:", id, "Updates:", updates);
+
+      const { data, error } = await supabase
+        .from(table)
+        .update(updates)
+        .eq("id", id);
+
+      console.log("Supabase response:", { data, error });
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      res.status(200).json({
+        message: `Record with id: ${id} updated successfully`,
+        data,
+      });
+    } catch (err: any) {
+      console.error("Unexpected server error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.patch(
+  "/:table/:id",
+  async (
+    req: { params: { table: any; id: any }; body: any },
+    res: {
+      status: (arg0: number) => {
+        (): any;
+        new (): any;
+        json: {
+          (arg0: { error?: any; message?: string; data?: any }): void;
+          new (): any;
+        };
+      };
+    }
+  ) => {
+    const { table, id } = req.params;
+    const updates = req.body;
+
+    const validation = validateTable(table, allowedTables);
+    if (!validation.valid) {
+      return res.status(400).json({ error: validation.message });
+    }
+
+    try {
+      console.log("Updating table:", table, "ID:", id, "Updates:", updates);
+
+      const { data, error } = await supabase
+        .from(table)
+        .update(updates)
+        .eq("id", id);
+
+      console.log("Supabase response:", { data, error });
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      res.status(200).json({
+        message: `Record with id: ${id} updated successfully`,
+        data,
+      });
+    } catch (err: any) {
+      console.error("Unexpected server error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
 //host to local network on 192.168
 const PORT = process.env.PORT || 3000;
-const HOST = "localhost"; // Replace with your actual local network IP
+const HOST = "192.168.142.123"; // Replace with your actual local network IP
 
 app.listen(PORT, HOST, () => {
   console.log(`Server running on http://${HOST}:${PORT}`);
