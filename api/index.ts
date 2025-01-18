@@ -50,6 +50,90 @@ app.post("/orders/findOrders", async (req: any, res: any) => {
   }
 });
 
+app.post("/findAddresses", async (req: any, res: any) => {
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    return res.status(400).json({ error: "user_id is required" });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("addresses")
+      .select("*")
+      .eq("user_id", user_id);
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.json({ addresses: data });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.patch("/setDefaultAddress", async (req: any, res: any) => {
+  const { user_id, address_id, old_address_id } = req.body;
+
+  if (!user_id || !address_id || !old_address_id) {
+    return res
+      .status(400)
+      .json({ error: "user_id, address_id, and old_address_id are required" });
+  }
+
+  try {
+    const { error: resetError } = await supabase
+      .from("addresses")
+      .update({ is_default: false })
+      .eq("user_id", user_id)
+      .eq("id", old_address_id);
+
+    if (resetError) {
+      return res.status(400).json({ error: resetError.message });
+    }
+
+    const { error: setError } = await supabase
+      .from("addresses")
+      .update({ is_default: true })
+      .eq("user_id", user_id)
+      .eq("id", address_id);
+
+    if (setError) {
+      return res.status(400).json({ error: setError.message });
+    }
+
+    return res.json({ success: true });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.post("/getDefaultAddress", async (req: any, res: any) => {
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    return res.status(400).json({ error: "user_id is required" });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("addresses")
+      .select("*")
+      .eq("user_id", user_id)
+      .eq("is_default", true)
+      .single();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.json({ address: data });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 app.post("/acceptOrder", async (req: any, res: any) => {
   const { deliveryPersonId, orderId } = req.body;
 
